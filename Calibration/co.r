@@ -5,6 +5,9 @@
 
 My.Setwd("GitHub/AoT-AQ/Calibration")
 
+# make sure this starts with the default calibration
+source("CalFileOffline.r")
+
 # bin size for mins
 bin.size <- 2.5
 
@@ -47,6 +50,7 @@ co.noback <- all.dat[[1]]$co.concentration.raw - co.background * co.span
 min.current <- tapply(co.noback[look], temp.fac, quantile, 0.05)
 
 # diagnostic plot
+My.Plot("COcalibration")
 plot(all.dat[[1]]$chem.temp, co.noback,
    xlab=My.Labs("Board temperature", "degree*C"),
    ylab=My.Labs("CO current", "nA"),
@@ -72,3 +76,6 @@ lines(x.new, old.cal[1]*exp((x.new - 40)/old.cal[2])*1e3, lwd=2, col=4)
 cal.info[toupper(mac.address[[node.id]]), c("Izero.CMO", "n.CMO")] <- 
    as.character(c(Izero40/1e3, 1/m))
 write.csv(cal.info, CO.FILE)
+legend("topleft", c("Factory calibration", "5th percentile", "Exp fit"),
+   lty=1, col=c(4, 3, 2))
+dev.off()
