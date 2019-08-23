@@ -136,7 +136,19 @@ Calibration <- function(all.dat) {
       # m (n) value measured for each individual sensor
       # see very big spreadsheet
       for(i in cal.labs) {
-         chem.zero <- cal[paste("Izero", i, sep=".")]*1e3* 
+         # do adjustment for carbon monoxide: see Calibration directory
+         load("Calibration/Izero.rdata")
+         if(i == "CMO") {
+            Izero <- rep(Izero.estimate$mean.2019, length(x.time))
+            # linear fit based on days starting Jan 1 2018
+            d.time <- x.time - ISOdate(2018, 1, 1, 0, tz="GMT") + 1
+            look <- d.time < Izero.estimate$day.intersect
+            Izero[look] <- d.time[look]*Izero.estimate$slope.2018 + 
+                  Izero.estimate$intercept.2018
+         } else {
+            Izero <- cal[paste("Izero", i, sep=".")]
+         }
+         chem.zero <- Izero*1e3* 
             exp((chem.temp - 40)/cal[paste("n", i, sep=".")])
          # substract zero from raw signal and put into new column
          all.dat[[board]][,chemsense.labs[i]] <- 
