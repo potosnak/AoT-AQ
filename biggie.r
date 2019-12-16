@@ -26,18 +26,22 @@ hrf <- FALSE
 # compare co to Max Berkelhammer's instrument
 max.co <- TRUE
 
+# apply by month co zero 
+CO.by.month <- TRUE
+
 # dates, will include data from last day
 # times & dates here are GMT
 # this is start of good collocation data
-START <- "2019-01-01"
-START <- "2018-03-01"
 # START <- "2018-09-01"
-# this is start for looking at hrf data
 # START <- "2018-12-01"
+# START <- "2018-03-01"
+START <- "2018-03-01"
 
 # should be about current date
-END   <- "2019-03-31"
-END   <- "2018-12-31"
+# END   <- "2019-03-31"
+# END   <- "2018-12-31"
+# END   <- "2019-06-30"
+# END   <- "2018-05-10"
 END   <- "2019-06-30"
 
 # History of nodes at ComEd, from photos
@@ -49,12 +53,13 @@ END   <- "2019-06-30"
 vsn <- c("072", "01C", "070", "057")
 vsn <- c("072", "01C")
 vsn <- c("072")
+vsn <- c("072", "028", "04C", "076", "09D", "092", "067")
 
 # source all functions, note vsn needs to be set first
 source("func.r")
 
 # read all the hourly data into one object
-all.dat <- Combine(START, END, "072", x.time)
+all.dat <- Combine(START, END, vsn, x.time)
 
 # get EPA data
 epa <- EPA()
@@ -65,10 +70,12 @@ epa[,"epa.o3.concentration"] <- epa[,"epa.o3.concentration"]*1e3
 all.dat <- Calibration(all.dat)
 
 # what species to look at for main sensor that has been running the entire time
-board <- "072"
+vsn.plot <- "04C"
+vsn.plot <- "09D"
+vsn.plot <- "072"
 
 # write out a file for David
-FullHourly <- cbind(all.dat[[board]], epa)
+FullHourly <- cbind(all.dat[[vsn.plot]], epa)
 write.csv(FullHourly, file="FullHourly.csv")
 
 if(hrf) {
@@ -101,10 +108,10 @@ if(max.co) {
 for(species in species.list) {
 
    # extract chemical species concentration to plot
-   y.aot <- all.dat[[board]][,species]
+   y.aot <- all.dat[[vsn.plot]][,species]
    if(hrf) {
       # says epa, but really hrf
-      y.epa <- all.dat[[board]][,paste(species, "hrf", sep=".")]*1e3
+      y.epa <- all.dat[[vsn.plot]][,paste(species, "hrf", sep=".")]*1e3
    } else {
       # normal, really epa data
       y.epa <- epa[,paste('epa', species, sep=".")]
@@ -113,15 +120,18 @@ for(species in species.list) {
    # something crazy with data from Memorial Day heat wave--kill data
    look <-  x.time >= strptime("2018-05-20 00:00", format=std.str, tz="GMT") & 
             x.time <= strptime("2018-05-31 23:00", format=std.str, tz="GMT")
+   # get rid of values that are just way too high
+   # look <- look | y.aot > 1e4
    y.aot[look] <- NA
 
    My.Plot(paste(species, "AoT and EPA"))
    plot(x.time, y.aot, type='l', col=2,
         ylim=c(0, max(y.aot, na.rm=TRUE)), xlab="Date", ylab=labs[[species]], 
-        main=paste(labs[[species]], " ", strftime(min(x.time), "%b %d"), " - ", 
-                   strftime(max(x.time), "%b %d"), " ", sep=""))
+        main=paste(labs[[species]], " ", 
+                  strftime(min(x.time), "%Y %b %d"), " - ", 
+                  strftime(max(x.time), "%Y %b %d"), " ", sep=""))
    lines(x.time, y.epa, col=4)
-   legend('topleft', c(board, "EPA"), lty=1, col=c(2,4))
+   legend('topleft', c(vsn.plot, "EPA"), lty=1, col=c(2,4))
    dev.off()
 
    look <- !is.na(y.aot) & !is.na(y.epa)
@@ -129,8 +139,8 @@ for(species in species.list) {
    My.Plot(paste(species, "AoT vs EPA"))
    plot(y.epa, y.aot, xlab="EPA", ylab="AoT",
       main=paste(labs[[species]], " ", 
-         strftime(min(x.time[look]), "%b %d"), " - ", 
-         strftime(max(x.time[look]), "%b %d"), " ", sep=""))
+         strftime(min(x.time[look]), "%Y %b %d"), " - ", 
+         strftime(max(x.time[look]), "%Y %b %d"), " ", sep=""))
    fit <- lm(y.aot ~ y.epa)
    rsq <- round(summary(fit)$r.sq, 2)
    text(par('usr')[1], par('usr')[4], bquote(R^2 == .(rsq)), adj=c(-0.5,1.5))
@@ -144,8 +154,8 @@ for(species in species.list) {
    plot(x.time[look], resid(fit), col=2, xlab="Date", ylab=labs[[species]],
       type='l', 
       main=paste("Residual ", labs[[species]], " ", 
-         strftime(min(x.time[look]), "%b %d"), " - ", 
-         strftime(max(x.time[look]), "%b %d"), " ", sep=""))
+         strftime(min(x.time[look]), "%Y %b %d"), " - ", 
+         strftime(max(x.time[look]), "%Y %b %d"), " ", sep=""))
    if(TRUE) {
       solar <- read.csv("Solar/2018_DGD.csv")
       solar.date <- ISOdate(solar$Year, solar$Month, solar$Day)
@@ -156,21 +166,21 @@ for(species in species.list) {
    dev.off()
 
    My.Plot(paste(species, "vs temp"))
-   plot(all.dat[[board]][,"chem.temp"], y.aot, 
+   plot(all.dat[[vsn.plot]][,"chem.temp"], y.aot, 
       xlab="Board Temperature (deg C)", 
       ylab=labs[[species]],
       main=paste("Concentration ", labs[[species]], " ", 
-         strftime(min(x.time), "%b %d"), " - ", 
-         strftime(max(x.time), "%b %d"), " ", sep=""))
+         strftime(min(x.time), "%Y %b %d"), " - ", 
+         strftime(max(x.time), "%Y %b %d"), " ", sep=""))
    dev.off()
    
    My.Plot(paste(species, "resid vs temp"))
-   plot(all.dat[[board]][look,"chem.temp"], resid(fit), 
+   plot(all.dat[[vsn.plot]][look,"chem.temp"], resid(fit), 
       xlab="Board Temperature (deg C)", 
       ylab=labs[[species]],
       main=paste("Residual ", labs[[species]], " ", 
-         strftime(min(x.time[look]), "%b %d"), " - ", 
-         strftime(max(x.time[look]), "%b %d"), " ", sep=""))
+         strftime(min(x.time[look]), "%Y %b %d"), " - ", 
+         strftime(max(x.time[look]), "%Y %b %d"), " ", sep=""))
    dev.off()
    
    doy <- as.numeric(x.time - ISOdatetime(2018, 1, 1, 0, 0, 0, tz="GMT") + 1)
@@ -180,8 +190,8 @@ for(species in species.list) {
    plot(hod, resid(fit), xlab="Hour of day [GMT]",
       ylab=labs[[species]],
       main=paste("Residual ", labs[[species]], " ", 
-         strftime(min(x.time[look]), "%b %d"), " - ", 
-         strftime(max(x.time[look]), "%b %d"), " ", sep=""))
+         strftime(min(x.time[look]), "%Y %b %d"), " - ", 
+         strftime(max(x.time[look]), "%Y %b %d"), " ", sep=""))
    dev.off()
 
    My.Plot(paste(species, "AoT and EPA night"))
@@ -190,16 +200,20 @@ for(species in species.list) {
       ylim=c(0, max(y.aot[look3], na.rm=TRUE)), xlab="Date", 
       ylab=labs[[species]], 
       main=paste("Night ", labs[[species]], " ", 
-         strftime(min(x.time[look3]), "%b %d"), " - ", 
-         strftime(max(x.time[look3]), "%b %d"), " ", sep=""))
+         strftime(min(x.time[look3]), "%Y %b %d"), " - ", 
+         strftime(max(x.time[look3]), "%Y %b %d"), " ", sep=""))
    points(x.time[look3], y.epa[look3], col=4)
-   legend('topleft', c(board, "EPA"), lty=1, col=c(2,4))
+   legend('topleft', c(vsn.plot, "EPA"), lty=1, col=c(2,4))
    dev.off()
 
    # look at absolute vapor pressure
-   svp <- 0.61365*exp(17.502*all.dat[[board]][,'chem.temp']/(240.97 +
-      all.dat[[board]][,'chem.temp']))
-   vp <- svp*all.dat[[board]][,"sht25.humidity.hrf"]
+   svp <- 0.61365*exp(17.502*all.dat[[vsn.plot]][,'chem.temp']/(240.97 +
+      all.dat[[vsn.plot]][,'chem.temp']))
+   if(is.na(match("sht25.humidity.hrf", colnames(all.dat[[vsn.plot]])))) {
+      vp <- rep(NA, nrow(all.dat[[vsn.plot]]))
+   } else {
+      vp <- svp*all.dat[[vsn.plot]][,"sht25.humidity.hrf"]
+   }
 
    # only print if there is enough vp data available 
    if(sum(!is.na(vp[look])) > 5) {
@@ -209,8 +223,8 @@ for(species in species.list) {
          xlab="Absolute humidity (kPa)", 
          ylab=labs[[species]],
          main=paste("Residual ", labs[[species]], " ", 
-            strftime(min(x.time[look]), "%b %d"), " - ", 
-            strftime(max(x.time[look]), "%b %d"), " ", sep=""))
+            strftime(min(x.time[look]), "%Y %b %d"), " - ", 
+            strftime(max(x.time[look]), "%Y %b %d"), " ", sep=""))
       dev.off()
    }
 
@@ -229,18 +243,21 @@ for(species in species.list) {
       plot(x.time[look][look.may], resid(fit)[look.may], 
          xlab="Date", ylab=labs[[species]], type='l',
          main=paste("Residual ", labs[[species]], " ",
-            strftime(min(x.time[look][look.may]), "%b %d"), " - ", 
-            strftime(max(x.time[look][look.may]), "%b %d"), " ", sep=""))
+            strftime(min(x.time[look][look.may]), "%Y %b %d"), " - ", 
+            strftime(max(x.time[look][look.may]), "%Y %b %d"), " ", sep=""))
       par(new=TRUE)
-      plot(x.time[look][look.may], all.dat[[board]][look,'chem.temp'][look.may],
+      plot(x.time[look][look.may], 
+         all.dat[[vsn.plot]][look,'chem.temp'][look.may],
          axes=FALSE, type='l', col=4, xlab="", ylab="")
       axis(4)
       mtext(expression(Temperature~(degree~C)), 4, line=2.5, col=4)
-      par(new=TRUE)
-      plot(x.time[look][look.may], vp[look][look.may],
-         axes=FALSE, type='l', col=3, xlab="", ylab="")
-      axis(4, line=4)
-      mtext("Vapor pressure (kPa)", 4, line=6.5, col=3)
+      if(sum(!is.na(vp[look])) > 5) {
+         par(new=TRUE)
+         plot(x.time[look][look.may], vp[look][look.may],
+            axes=FALSE, type='l', col=3, xlab="", ylab="")
+         axis(4, line=4)
+         mtext("Vapor pressure (kPa)", 4, line=6.5, col=3)
+      }
       # see if PM 2.5 from EPA correlates (no, it doesn't)
       # par(new=TRUE)
       # plot(x.time[look][look.may], epa[look,"epa.pm2.5"][look.may],
@@ -254,11 +271,12 @@ if(sum(look.may) > 5) {
    # look at a spike, o3 and no2, raw and hrf, epa
    My.Plot("may o3 and no2")
    par(mfrow=c(2,1),mar=c(0,4,4,4))
-   plot(x.time[look][look.may], all.dat[[1]][look,'o3.concentration'][look.may], 
+   plot(x.time[look][look.may], 
+      all.dat[[vsn.plot]][look,'o3.concentration'][look.may], 
       xlab="Date", ylab="Ozone", type='l',
       main=paste("Spike ", " ",
-         strftime(min(x.time[look][look.may]), "%b %d"), " - ", 
-         strftime(max(x.time[look][look.may]), "%b %d"), " ", sep=""), 
+         strftime(min(x.time[look][look.may]), "%Y %b %d"), " - ", 
+         strftime(max(x.time[look][look.may]), "%Y %b %d"), " ", sep=""), 
       axes=FALSE)
    axis(2)
    box()
@@ -266,20 +284,20 @@ if(sum(look.may) > 5) {
       col=2)
    par(new=TRUE)
    plot(x.time[look][look.may], 
-      all.dat[[board]][look,'o3.concentration.raw'][look.may],
+      all.dat[[vsn.plot]][look,'o3.concentration.raw'][look.may],
       axes=FALSE, type='l', col=4, xlab="", ylab="")
    axis(4)
    mtext(expression(Raw~current~(nA)), 4, line=2.5, col=4)
    par(mar=c(4,4,0,4))
    plot(x.time[look][look.may], 
-      all.dat[[1]][look,'no2.concentration'][look.may], 
+      all.dat[[vsn.plot]][look,'no2.concentration'][look.may], 
       xlab="Date", ylab="NO2", type='l')
    lines(x.time[look][look.may], epa[look,'epa.no2.concentration'][look.may], 
       col=2)
    legend('topleft', c("AoT", "EPA", "current"), lty=1, col=c(1, 2, 4), bty='n')
    par(new=TRUE)
    plot(x.time[look][look.may], 
-      all.dat[[board]][look,'no2.concentration.raw'][look.may],
+      all.dat[[vsn.plot]][look,'no2.concentration.raw'][look.may],
       axes=FALSE, type='l', col=4, xlab="", ylab="")
    axis(4)
    mtext(expression(Raw~current~(nA)), 4, line=2.5, col=4)
@@ -288,7 +306,7 @@ if(sum(look.may) > 5) {
    # look at all raw currents
    My.Plot("may raw currents")
    gases <- c('no2', 'o3', 'h2s', 'co', 'so2')
-   matplot(x.time[look][look.may], all.dat[[1]][look,paste(gases, 
+   matplot(x.time[look][look.may], all.dat[[vsn.plot]][look,paste(gases, 
       'concentration.raw', sep=".")][look.may,], type='l', lty=1)
    legend('topright', gases, lty=1, col=c(1:5))
 dev.off()

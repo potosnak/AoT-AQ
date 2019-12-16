@@ -44,14 +44,17 @@ GetDate <- function(i) { strptime(rownames(all.dat[[i]]), format=std.str,
 # sets the plotting type
 My.Plot <- function(title) {
    # pdf(paste("Plots/", title, ".pdf", sep=""))
-   png(paste("Plots/", title, ".png", sep=""), res=150, width=750, height=750)
+   png(paste("Plots/", vsn.plot, "/", title, ".png", sep=""), 
+      res=150, width=750, height=750)
 }
 
 # need node_id for each vsn, that's how files are stored
-node.info <- read.csv(url(paste(
-   "https://raw.githubusercontent.com/waggle-sensor/beehive-server/",
-   "master/publishing-tools/projects/AoT_Chicago.complete/nodes.csv", sep="")),
-   as.is=TRUE)
+# change so can run offline 
+# node.info <- read.csv(url(paste(
+   # "https://raw.githubusercontent.com/waggle-sensor/beehive-server/",
+   # "master/publishing-tools/projects/AoT_Chicago.complete/nodes.csv", sep="")),
+   # as.is=TRUE)
+node.info <- read.csv("nodes.csv", as.is=TRUE)
 # add some by hand, since not in file
 node.info <- rbind(node.info, c("001e0610ba13", "AoT Chicago", "01C", 
    "7801 S Lawndale Ave Chicago IL", "41.751142", "-87.71299", 
@@ -97,7 +100,7 @@ Combine <- function(START, END, vsn, x.time) {
 # all.dat
 # calibration file
 
-Calibration <- function(all.dat) {
+Calibration <- function(all.dat, temp.only = FALSE) {
 
    # need mac address information for doing calibrations
    if(is.na(file.info(mac.file)[1])) {
@@ -119,17 +122,25 @@ Calibration <- function(all.dat) {
    names(chemsense.labs) <- cal.labs
 
    for(board in names(all.dat)) {
+      # need to get average temperature of ADC board
+      chem.temp <- apply(all.dat[[board]][,
+         paste("at", c(0:3), ".temperature.hrf", sep="")], 1, mean)
+      all.dat[[board]][,"chem.temp"] <- chem.temp
+      # if called from coAndtemp.r, only need temperature
+      if(temp.only) { next }
       # get line of cal data
-      cal <- as.numeric(cal.info[toupper(mac.address[[node.id[board]]]),])
+      foo <- mac.address[[node.id[board]]]
+      if(length(foo) > 1) {
+         warning(paste("Multiple MAC addresses; selecting last one"))
+         warning(paste(foo, ""))
+         foo <- foo[length(foo)]
+      }
+      cal <- as.numeric(cal.info[toupper(foo),])
       names(cal) <- colnames(cal.info)
       # get matrix of cross sensitivities
       # note, need to construct rows for IRR and IAQ
       cal.mat <- matrix(cal[outer(cal.labs, cal.labs, paste, sep='.')], ncol=7)
       row.names(cal.mat) <- cal.labs
-      # need to get average temperature of ADC board
-      chem.temp <- apply(all.dat[[board]][,
-         paste("at", c(0:3), ".temperature.hrf", sep="")], 1, mean)
-      all.dat[[board]][,"chem.temp"] <- chem.temp
       # loop through to apply calibration to all species
       # subtrack zero current and apply span factor
       # use Izero40 (zero current measured at 40 deg C) and
@@ -138,7 +149,7 @@ Calibration <- function(all.dat) {
       for(i in cal.labs) {
          # do adjustment for carbon monoxide: see Calibration directory
          load("Calibration/Izero.rdata")
-         if(i == "CMO") {
+         if(i == "CMO" & CO.by.month) {
             Izero <- rep(Izero.estimate$mean.2019, length(x.time))
             # linear fit based on days starting Jan 1 2018
             d.time <- x.time - ISOdate(2018, 1, 1, 0, tz="GMT") + 1
@@ -167,9 +178,11 @@ Calibration <- function(all.dat) {
       Filter <- function(x) {
          a <- x[1]; b <- x[2]
          if(is.na(a) | is.na(b)) {return(c(NA, NA))}
-         if(a < 0 & b < 0) {return(c(0,0))}
-         if(a > 0 & b < 0) {return(c(a + b, 0))}
-         if(a < 0 & b > 0) {return(c(0, a + b))}
+         # note, this just throws everything out!
+         if(a < 0 | b < 0) {return(c(NA,NA))}
+         # if(a < 0 & b < 0) {return(c(0,0))}
+         # if(a > 0 & b < 0) {return(c(a + b, 0))}
+         # if(a < 0 & b > 0) {return(c(0, a + b))}
          return(c(a,b))
       }
       all.dat[[board]][,c("o3.concentration", "no2.concentration")] <- 
