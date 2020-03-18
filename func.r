@@ -44,6 +44,7 @@ GetDate <- function(i) { strptime(rownames(all.dat[[i]]), format=std.str,
 # sets the plotting type
 My.Plot <- function(title) {
    # pdf(paste("Plots/", title, ".pdf", sep=""))
+   dir.create(file.path("Plots", vsn.plot), showWarnings=FALSE)
    png(paste("Plots/", vsn.plot, "/", title, ".png", sep=""), 
       res=150, width=750, height=750)
 }
@@ -77,7 +78,7 @@ Combine <- function(START, END, vsn, x.time) {
    all.dat <- list()
    for (i in vsn) {
       # name of extracted file, from hourly.r script
-      file.name <- paste("RawDataReduction/hourly", node.id[i], ".csv", sep="")
+      file.name <- paste("RawDataReduction/Adam/hourly", node.id[i], ".csv", sep="")
       foo <- read.csv(file.name, row.names=1)
       x <- substr(rownames(foo), 1, 10)
       foo <- foo[x >= START & x <= END,]

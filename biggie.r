@@ -50,10 +50,15 @@ END   <- "2019-06-30"
 # Feb 8 072 and 070
 # 072 has been installed since the beginning, except down for a bit
 # 01C installed Jun 9
-vsn <- c("072", "01C", "070", "057")
-vsn <- c("072", "01C")
-vsn <- c("072")
-vsn <- c("072", "028", "04C", "076", "09D", "092", "067")
+# vsn <- c("072", "01C", "070", "057")
+# vsn <- c("072", "01C")
+# vsn <- c("072", "028", "04C", "076", "09D", "092", "067")
+# 15 nodes with most data from Adam's run
+# vsn <- c("072", "08B", "02D", "08F", "07C",
+vsn <- c("072", "08B", "08F", "07C",
+         "08C", "086", "086", "088", "004",
+         "09C", "089", "02A", "073", "07F")
+# vsn <- c("072")
 
 # source all functions, note vsn needs to be set first
 source("func.r")
@@ -70,13 +75,14 @@ epa[,"epa.o3.concentration"] <- epa[,"epa.o3.concentration"]*1e3
 all.dat <- Calibration(all.dat)
 
 # what species to look at for main sensor that has been running the entire time
-vsn.plot <- "04C"
-vsn.plot <- "09D"
-vsn.plot <- "072"
+# vsn.plot <- "04C"
+# vsn.plot <- "09D"
+# vsn.plot <- "072"
+for(vsn.plot in vsn) {
 
 # write out a file for David
 FullHourly <- cbind(all.dat[[vsn.plot]], epa)
-write.csv(FullHourly, file="FullHourly.csv")
+write.csv(FullHourly, file=paste("FullHourly", vsn.plot, ".csv", sep=""))
 
 if(hrf) {
    # all chemsense species
@@ -310,4 +316,5 @@ if(sum(look.may) > 5) {
       'concentration.raw', sep=".")][look.may,], type='l', lty=1)
    legend('topright', gases, lty=1, col=c(1:5))
 dev.off()
+}
 }
