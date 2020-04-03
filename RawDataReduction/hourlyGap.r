@@ -17,7 +17,7 @@ DISCARD.LENGTH <- 10*60
 
 # runs independently, in its own directory
 if(exists("My.Setwd")) {
-   My.Setwd("GitHub/AoT-AQ/RawDataReduction")
+   # My.Setwd("GitHub/AoT-AQ/RawDataReduction")
 }
 
 # currently, hard coded to one node

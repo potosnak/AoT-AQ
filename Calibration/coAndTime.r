@@ -16,8 +16,8 @@ START <- "2018-03-01"
 END   <- "2019-06-30"
 
 # try first wil standard node
-vsn.plot <- c("04C")
-vsn.plot <- c("09D")
+# vsn.plot <- c("04C")
+# vsn.plot <- c("09D")
 vsn.plot <- c("072")
 
 # functions used by main script: only need one that combines data

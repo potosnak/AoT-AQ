@@ -17,17 +17,17 @@
 
 # you'll need to make sure you have in a reasonable working directory
 if(exists("My.Setwd")) {
-   My.Setwd("GitHub/AoT-AQ")
+   # My.Setwd("GitHub/AoT-AQ")
 }
 
 # look at hrf instead of epa (but still called epa in plots)
-hrf <- FALSE
+hrf <- TRUE
 
 # compare co to Max Berkelhammer's instrument
-max.co <- TRUE
+max.co <- FALSE
 
 # apply by month co zero 
-CO.by.month <- TRUE
+CO.by.month <- FALSE
 
 # dates, will include data from last day
 # times & dates here are GMT
@@ -36,13 +36,14 @@ CO.by.month <- TRUE
 # START <- "2018-12-01"
 # START <- "2018-03-01"
 START <- "2018-03-01"
+START <- "2020-03-01"
 
 # should be about current date
 # END   <- "2019-03-31"
 # END   <- "2018-12-31"
 # END   <- "2019-06-30"
 # END   <- "2018-05-10"
-END   <- "2019-06-30"
+END   <- "2020-03-31"
 
 # History of nodes at ComEd, from photos
 # Jun 8 072 and 01C
@@ -58,7 +59,7 @@ END   <- "2019-06-30"
 vsn <- c("072", "08B", "08F", "07C",
          "08C", "086", "086", "088", "004",
          "09C", "089", "02A", "073", "07F")
-# vsn <- c("072")
+vsn <- c("072")
 
 # source all functions, note vsn needs to be set first
 source("func.r")
